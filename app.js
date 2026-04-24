@@ -828,10 +828,31 @@ function renderCatList(){
 // =====================
 let _newCatColor='#ef4444', _pendingSelected=null;
 
+function syncColorPicker(presetColor) {
+  // highlight matching preset chip (or none if custom)
+  document.querySelectorAll('.color-chip[data-color]').forEach(b=>{
+    b.classList.toggle('sel', presetColor && b.dataset.color===presetColor);
+  });
+  // update custom label preview
+  const preview=document.getElementById('custom-color-preview');
+  const native=document.getElementById('color-input-native');
+  if(preview && native){
+    native.value=_newCatColor;
+    // show colored circle if custom color is active (no preset matched)
+    const isCustom=!presetColor;
+    preview.textContent=isCustom?'':'🎨';
+    preview.style.background=isCustom?_newCatColor:'';
+    preview.style.borderRadius=isCustom?'50%':'';
+    preview.style.display='block';
+    preview.style.width=isCustom?'22px':'auto';
+    preview.style.height=isCustom?'22px':'auto';
+  }
+}
+
 function openCatModalFromEvent(){
   document.getElementById('cat-name').value='';
   _newCatColor='#ef4444';
-  document.querySelectorAll('.color-chip').forEach(b=>b.classList.toggle('sel',b.dataset.color===_newCatColor));
+  syncColorPicker(_newCatColor);
   showModal('cat-modal');
 }
 
@@ -1004,9 +1025,15 @@ function init(){
   document.querySelectorAll('.day-chip').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('sel')));
 
   document.querySelectorAll('.color-chip').forEach(b=>b.addEventListener('click',()=>{
+    if(!b.dataset.color) return; // custom label handled separately
     _newCatColor=b.dataset.color;
-    document.querySelectorAll('.color-chip').forEach(x=>x.classList.toggle('sel',x===b));
+    syncColorPicker(_newCatColor);
   }));
+  const nativeInput=document.getElementById('color-input-native');
+  nativeInput.addEventListener('input',()=>{
+    _newCatColor=nativeInput.value;
+    syncColorPicker(null); // deselect presets, keep native selected
+  });
 
   document.getElementById('cat-save').addEventListener('click',saveCat);
 
