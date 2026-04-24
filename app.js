@@ -283,31 +283,6 @@ function buildYear() {
   const grid=el('div','year-grid');
   const y=S.cursor.getFullYear();
   for(let m=0;m<12;m++) grid.appendChild(miniMonth(y,m));
-
-  // Pinch → go to 3months view centered on that month
-  let pinchStart=0, pinchMonth=null;
-  grid.addEventListener('touchstart',e=>{
-    if(e.touches.length===2){
-      const dx=e.touches[0].clientX-e.touches[1].clientX;
-      const dy=e.touches[0].clientY-e.touches[1].clientY;
-      pinchStart=Math.hypot(dx,dy);
-      const mx=(e.touches[0].clientX+e.touches[1].clientX)/2;
-      const my=(e.touches[0].clientY+e.touches[1].clientY)/2;
-      const card=document.elementFromPoint(mx,my)?.closest('.year-month');
-      pinchMonth=card?parseInt(card.dataset.month):null;
-    }
-  },{passive:true});
-  grid.addEventListener('touchend',e=>{
-    if(pinchStart>0){
-      const t0=e.changedTouches[0], t1=e.changedTouches[1]||t0;
-      const dx=t0.clientX-t1.clientX, dy=t0.clientY-t1.clientY;
-      if(Math.hypot(dx,dy)-pinchStart>40&&pinchMonth!==null){
-        S.cursor=new Date(y,pinchMonth,1); setView('3months');
-      }
-      pinchStart=0;
-    }
-  },{passive:true});
-
   wrap.appendChild(grid);
   return wrap;
 }
@@ -346,35 +321,10 @@ function build3Months() {
   const wrap=el('div','threemon-view');
   wrap.appendChild(buildLegend());
   const scroll=el('div','threemon-scroll'); wrap.appendChild(scroll);
-
   for(let i=0;i<3;i++){
     const monthDate=new Date(S.cursor.getFullYear(), S.cursor.getMonth()+i, 1);
     scroll.appendChild(buildMonthBlock(monthDate, i===0));
   }
-
-  // Pinch → go to individual month
-  let pinchStart=0, pinchTarget=null;
-  scroll.addEventListener('touchstart',e=>{
-    if(e.touches.length===2){
-      const dx=e.touches[0].clientX-e.touches[1].clientX;
-      const dy=e.touches[0].clientY-e.touches[1].clientY;
-      pinchStart=Math.hypot(dx,dy);
-      const mx=(e.touches[0].clientX+e.touches[1].clientX)/2;
-      const my=(e.touches[0].clientY+e.touches[1].clientY)/2;
-      const block=document.elementFromPoint(mx,my)?.closest('.month-block');
-      pinchTarget=block?block.dataset.month:null;
-    }
-  },{passive:true});
-  scroll.addEventListener('touchend',e=>{
-    if(pinchStart>0){
-      const t0=e.changedTouches[0], t1=e.changedTouches[1]||t0;
-      if(Math.hypot(t0.clientX-t1.clientX, t0.clientY-t1.clientY)-pinchStart>40&&pinchTarget){
-        S.cursor=fromDS(pinchTarget+'-01'); setView('month');
-      }
-      pinchStart=0;
-    }
-  },{passive:true});
-
   return wrap;
 }
 
@@ -449,6 +399,7 @@ function buildMonthWeekRow(days, weekEvs, currentMonth) {
     const cell=el('div',cls);
     cell.style.gridColumn=String(di+1);
     cell.style.gridRow=String(numLanes+1);
+    cell.dataset.date=toDS(date);
     cell.addEventListener('click',()=>newEvent(toDS(date)));
 
     const dayNum=el('div','mday'); dayNum.textContent=date.getDate(); cell.appendChild(dayNum);
@@ -574,6 +525,7 @@ function buildWeek() {
 
   days.forEach((day,di)=>{
     const col=el('div','week-day-col');
+    col.dataset.date=toDS(day);
     for(let h=0;h<24;h++){
       const line=el('div','hour-line'); line.style.top=(h*60)+'px'; col.appendChild(line);
       const half=el('div','half-line'); half.style.top=(h*60+30)+'px'; col.appendChild(half);
@@ -901,11 +853,92 @@ function hideModal(id){ document.getElementById(id).classList.add('hidden'); }
 function hideAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.add('hidden')); }
 
 // =====================
+// PINCH ZOOM
+// =====================
+const VIEW_ORDER = ['year','3months','month','week','day'];
+
+let _pd=0, _pex=0, _pey=0, _pmx=0, _pmy=0, _pinching=false;
+
+function initPinch() {
+  const area = document.getElementById('cal-main');
+
+  area.addEventListener('touchstart', e=>{
+    if(e.touches.length===2){
+      const a=e.touches[0], b=e.touches[1];
+      _pd = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+      _pex = _pd;
+      _pmx = (a.clientX+b.clientX)/2;
+      _pmy = (a.clientY+b.clientY)/2;
+      _pinching = true;
+    } else {
+      _pinching = false;
+    }
+  },{passive:true});
+
+  area.addEventListener('touchmove', e=>{
+    if(_pinching && e.touches.length===2){
+      const a=e.touches[0], b=e.touches[1];
+      _pex = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+      _pmx = (a.clientX+b.clientX)/2;
+      _pmy = (a.clientY+b.clientY)/2;
+    }
+  },{passive:true});
+
+  area.addEventListener('touchend', e=>{
+    if(!_pinching) return;
+    if(e.touches.length < 2){
+      const diff = _pex - _pd;
+      if(Math.abs(diff) > 45 && !document.querySelector('.modal:not(.hidden)')){
+        if(diff > 0) pinchIn(_pmx, _pmy);   // spread = zoom in (more detail)
+        else         pinchOut(_pmx, _pmy);   // pinch  = zoom out (less detail)
+      }
+      _pinching = false;
+    }
+  },{passive:true});
+}
+
+function pinchIn(mx, my) {
+  // Zoom into more detailed view
+  const idx = VIEW_ORDER.indexOf(S.view);
+  if(idx >= VIEW_ORDER.length-1) return;
+
+  if(S.view==='year'){
+    const card = document.elementFromPoint(mx,my)?.closest('.year-month');
+    if(card) S.cursor = new Date(S.cursor.getFullYear(), parseInt(card.dataset.month), 1);
+    setView('3months');
+  } else if(S.view==='3months'){
+    const block = document.elementFromPoint(mx,my)?.closest('.month-block');
+    if(block?.dataset.month) S.cursor = fromDS(block.dataset.month+'-01');
+    setView('month');
+  } else if(S.view==='month'){
+    const cell = document.elementFromPoint(mx,my)?.closest('.month-cell[data-date]');
+    if(cell?.dataset.date) S.cursor = fromDS(cell.dataset.date);
+    setView('week');
+  } else if(S.view==='week'){
+    const col = document.elementFromPoint(mx,my)?.closest('.week-day-col[data-date]');
+    if(col?.dataset.date) S.cursor = fromDS(col.dataset.date);
+    setView('day');
+  }
+}
+
+function pinchOut(mx, my) {
+  // Zoom out to less detailed view
+  if(S.view==='day')      setView('week');
+  else if(S.view==='week')    setView('month');
+  else if(S.view==='month')   setView('3months');
+  else if(S.view==='3months') setView('year');
+}
+
+// =====================
 // SWIPE
 // =====================
-let tx=0,ty=0;
-document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+let tx=0, ty=0, _swipeBlocked=false;
+document.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){ tx=e.touches[0].clientX; ty=e.touches[0].clientY; _swipeBlocked=false; }
+  else { _swipeBlocked=true; }
+},{passive:true});
 document.addEventListener('touchend',e=>{
+  if(_swipeBlocked) return;
   const dx=e.changedTouches[0].clientX-tx;
   const dy=e.changedTouches[0].clientY-ty;
   if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.5){
@@ -980,6 +1013,7 @@ function init(){
   document.querySelectorAll('.modal-backdrop,.modal-close').forEach(el=>el.addEventListener('click',hideAllModals));
   document.querySelectorAll('.modal-sheet').forEach(s=>s.addEventListener('click',e=>e.stopPropagation()));
 
+  initPinch();
   render();
 }
 
