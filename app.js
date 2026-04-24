@@ -10,7 +10,7 @@ const TR = {
     titleLbl:'Titel', titlePh:'Titel (optional)',
     categoryLbl:'Kategorie', dateLbl:'Datum', dateEndLbl:'Bis Datum',
     fromLbl:'Von', toLbl:'Bis', repeatLbl:'Wiederholen',
-    notesLbl:'Notizen', notesPh:'Notizen...',
+    notesLbl:'Notizen', notesPh:'Notizen...', showInLbl:'Anzeigen in',
     del:'Löschen', save:'Speichern', edit:'Bearbeiten',
     settings:'Einstellungen', appearance:'Darstellung', darkMode:'Dark Mode',
     langLbl:'Sprache', categories:'Kategorien', newCat:'Neue Kategorie',
@@ -31,7 +31,7 @@ const TR = {
     titleLbl:'Title', titlePh:'Title (optional)',
     categoryLbl:'Category', dateLbl:'Date', dateEndLbl:'End Date',
     fromLbl:'From', toLbl:'To', repeatLbl:'Repeat',
-    notesLbl:'Notes', notesPh:'Notes...',
+    notesLbl:'Notes', notesPh:'Notes...', showInLbl:'Show in',
     del:'Delete', save:'Save', edit:'Edit',
     settings:'Settings', appearance:'Appearance', darkMode:'Dark Mode',
     langLbl:'Language', categories:'Categories', newCat:'New Category',
@@ -52,7 +52,7 @@ const TR = {
     titleLbl:'Название', titlePh:'Название (необязательно)',
     categoryLbl:'Категория', dateLbl:'Дата', dateEndLbl:'Конец',
     fromLbl:'С', toLbl:'До', repeatLbl:'Повтор',
-    notesLbl:'Заметки', notesPh:'Заметки...',
+    notesLbl:'Заметки', notesPh:'Заметки...', showInLbl:'Показывать в',
     del:'Удалить', save:'Сохранить', edit:'Изменить',
     settings:'Настройки', appearance:'Внешний вид', darkMode:'Тёмный режим',
     langLbl:'Язык', categories:'Категории', newCat:'Новая категория',
@@ -80,6 +80,10 @@ function applyTranslations() {
   // Update select options
   document.querySelectorAll('#ev-repeat option[data-i18n]').forEach(opt => {
     opt.textContent = t(opt.dataset.i18n);
+  });
+  // Update show-in chip labels
+  document.querySelectorAll('.showin-chip[data-i18n-view]').forEach(b=>{
+    b.textContent=t(b.dataset.i18nView);
   });
   // Update day chips in weekday selector
   const dayChips = document.querySelectorAll('#weekday-chips .day-chip');
@@ -185,6 +189,16 @@ function expand(from, to) {
   return out;
 }
 function eventsForDay(date) { const d=startOfDay(date); return expand(d,d); }
+
+// Returns true if event should appear in the given view
+function visibleIn(ev, view) {
+  if (!ev.showIn || ev.showIn.length === 0) return true; // default: all views
+  return ev.showIn.includes(view);
+}
+
+function expandForView(view, from, to) {
+  return expand(from, to).filter(ev => visibleIn(ev, view));
+}
 
 // =====================
 // RENDER DISPATCH
@@ -300,7 +314,7 @@ function miniMonth(y,m) {
   const first=new Date(y,m,1);
   let dow=first.getDay(); dow=dow===0?6:dow-1;
   const dim=new Date(y,m+1,0).getDate();
-  const evDays=new Set(expand(new Date(y,m,1),new Date(y,m,dim)).map(e=>toDS(e._s)));
+  const evDays=new Set(expandForView('year',new Date(y,m,1),new Date(y,m,dim)).map(e=>toDS(e._s)));
 
   for(let i=0;i<dow;i++){ const c=el('div','ymini-cell other'); grid.appendChild(c); }
   for(let d=1;d<=dim;d++){
@@ -323,7 +337,7 @@ function build3Months() {
   const scroll=el('div','threemon-scroll'); wrap.appendChild(scroll);
   for(let i=0;i<3;i++){
     const monthDate=new Date(S.cursor.getFullYear(), S.cursor.getMonth()+i, 1);
-    scroll.appendChild(buildMonthBlock(monthDate, i===0));
+    scroll.appendChild(buildMonthBlock(monthDate, i===0, '3months'));
   }
   return wrap;
 }
@@ -331,7 +345,7 @@ function build3Months() {
 // =====================
 // MONTH BLOCK (used by month view and 3-months view)
 // =====================
-function buildMonthBlock(date, showLegend) {
+function buildMonthBlock(date, showLegend, view='month') {
   const y=date.getFullYear(), m=date.getMonth();
   const block=el('div','month-block');
   block.dataset.month=y+'-'+pad(m+1);
@@ -356,7 +370,7 @@ function buildMonthBlock(date, showLegend) {
   const gridStart=addDays(first,-dow);
   const weeks=Math.ceil((dow+last.getDate())/7);
   const gridEnd=addDays(gridStart,weeks*7-1);
-  const allEvs=expand(gridStart,gridEnd);
+  const allEvs=expandForView(view,gridStart,gridEnd);
 
   const grid=el('div','month-grid'); block.appendChild(grid);
 
@@ -432,7 +446,7 @@ function buildMonthWeekRow(days, weekEvs, currentMonth) {
 function buildMonth() {
   const wrap=el('div','month-view');
   wrap.appendChild(buildLegend());
-  wrap.appendChild(buildMonthBlock(S.cursor, false));
+  wrap.appendChild(buildMonthBlock(S.cursor, false, 'month'));
   return wrap;
 }
 
@@ -507,7 +521,7 @@ function buildWeek() {
   // Events
   const ws0=startOfDay(new Date(days[0]));
   const we0=new Date(days[6]); we0.setHours(23,59,59,999);
-  const allEvs=expand(ws0,we0);
+  const allEvs=expandForView('week',ws0,we0);
   const timedEvs=allEvs.filter(e=>e.startTime&&!e.allDay);
   const alldayEvs=allEvs.filter(e=>!e.startTime||e.allDay);
 
@@ -548,7 +562,7 @@ function buildWeek() {
 function buildDay() {
   const wrap=el('div','day-view');
   const day=S.cursor;
-  const allEvs=eventsForDay(day);
+  const d=startOfDay(day); const allEvs=expandForView('day',d,d);
   const timed=allEvs.filter(e=>e.startTime&&!e.allDay);
   const allday=allEvs.filter(e=>!e.startTime||e.allDay);
 
@@ -675,7 +689,7 @@ function newEvent(dateStr, timeStr){
     document.getElementById('ev-start').value='';
     document.getElementById('ev-end').value='';
   }
-  updateTimeRow(); buildCatChips(null); clearDayChips();
+  updateTimeRow(); buildCatChips(null); clearDayChips(); resetShowIn(null);
   showModal('event-modal');
 }
 
@@ -691,7 +705,7 @@ function editEvent(ev){
   document.getElementById('ev-repeat').value=ev.repeat||'none';
   document.getElementById('ev-custom-days').classList.toggle('hidden',ev.repeat!=='custom');
   document.getElementById('ev-delete').classList.remove('hidden');
-  updateTimeRow(); buildCatChips(ev.category); clearDayChips();
+  updateTimeRow(); buildCatChips(ev.category); clearDayChips(); resetShowIn(ev.showIn||null);
   (ev.repeatDays||[]).forEach(d=>{
     document.querySelectorAll('.day-chip').forEach(b=>{ if(Number(b.dataset.day)===d) b.classList.add('sel'); });
   });
@@ -739,6 +753,13 @@ function renderCatChips(row, selected){
 
 function clearDayChips(){ document.querySelectorAll('.day-chip').forEach(b=>b.classList.remove('sel')); }
 
+function resetShowIn(showIn){
+  // null or empty = all views selected (default)
+  document.querySelectorAll('.showin-chip').forEach(b=>{
+    b.classList.toggle('sel', !showIn || showIn.length===0 || showIn.includes(b.dataset.view));
+  });
+}
+
 function saveEvent(){
   const date=document.getElementById('ev-date').value; if(!date)return;
   const dateEnd=document.getElementById('ev-date-end').value;
@@ -751,7 +772,11 @@ function saveEvent(){
   const category=sel?sel.dataset.id:(S.categories[0]?.id||'');
   const repeatDays=[];
   document.querySelectorAll('.day-chip.sel').forEach(b=>repeatDays.push(Number(b.dataset.day)));
-  const data={title,date,dateEnd:dateEnd!==date?dateEnd:null,startTime,endTime,notes,repeat,repeatDays,category};
+  const showInSel=[];
+  document.querySelectorAll('.showin-chip.sel').forEach(b=>showInSel.push(b.dataset.view));
+  // if all 5 views selected, store empty array (= show everywhere, no restriction)
+  const showIn=showInSel.length===5?[]:showInSel;
+  const data={title,date,dateEnd:dateEnd!==date?dateEnd:null,startTime,endTime,notes,repeat,repeatDays,category,showIn};
   if(S.editingId){
     const i=S.events.findIndex(e=>e.id===S.editingId); if(i!==-1) S.events[i]={...S.events[i],...data};
   } else {
@@ -1023,6 +1048,7 @@ function init(){
     document.getElementById('ev-custom-days').classList.toggle('hidden',e.target.value!=='custom');
   });
   document.querySelectorAll('.day-chip').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('sel')));
+  document.querySelectorAll('.showin-chip').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('sel')));
 
   document.querySelectorAll('.color-chip').forEach(b=>b.addEventListener('click',()=>{
     if(!b.dataset.color) return; // custom label handled separately
