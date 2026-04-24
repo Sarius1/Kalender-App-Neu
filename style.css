@@ -208,14 +208,27 @@ textarea{resize:vertical;min-height:80px}
 .legend-name{font-size:12px;font-weight:600;color:var(--text2)}
 
 /* ==========================
-   MONTH VIEW
+   MONTH VIEW + SHARED MONTH BLOCK
    ========================== */
 .month-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.month-view .month-block{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;}
+.month-view .month-block-title{display:none}
+.month-view .month-grid{flex:1}
+
+/* month block used in both month view and 3-months */
+.month-block{display:flex;flex-direction:column;}
+.month-block-title{
+  font-size:15px;font-weight:700;padding:10px 14px 4px;color:var(--text);
+  cursor:pointer;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--surface);z-index:2;
+}
+.month-block-title:active{color:var(--accent)}
 .month-hdr{
   display:grid;grid-template-columns:26px repeat(7,1fr);
   background:var(--surface);border-bottom:1px solid var(--border);
-  flex-shrink:0;
+  flex-shrink:0;position:sticky;top:32px;z-index:1;
 }
+.month-view .month-hdr{top:0;}
 .month-hdr-cell{
   font-size:11px;font-weight:700;text-align:center;
   padding:7px 2px;color:var(--text3);
@@ -223,23 +236,33 @@ textarea{resize:vertical;min-height:80px}
 }
 .month-hdr-cell.wkend{color:var(--wkend)}
 .month-hdr-cell.kw{color:var(--text3);font-size:10px}
-.month-grid{
-  display:grid;
-  grid-auto-rows:minmax(72px,1fr);
-  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-}
-.month-row{display:grid;grid-template-columns:26px repeat(7,1fr);border-bottom:1px solid var(--border)}
+.month-grid{display:flex;flex-direction:column;}
+.month-row{display:grid;grid-template-columns:26px 1fr;border-bottom:1px solid var(--border)}
 .month-kw{
   font-size:9px;color:var(--text3);font-weight:600;
   display:flex;align-items:flex-start;justify-content:center;
   padding-top:6px;border-right:1px solid var(--border);
 }
+/* week body: 7-col grid for banners + day cells */
+.month-week-body{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+}
+.month-banner{
+  font-size:10px;font-weight:600;color:white;
+  padding:1px 5px;border-radius:3px;margin:1px 2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  cursor:pointer;align-self:center;line-height:1.6;
+  transition:filter .15s;
+}
+.month-banner:active{filter:brightness(.85)}
 .month-cell{
   border-left:1px solid var(--border);
   padding:3px 2px;overflow:hidden;
   cursor:pointer;transition:background .1s;
-  min-height:72px;
+  min-height:60px;
 }
+.month-cell:first-child{border-left:none}
 .month-cell:active{background:var(--bg2)}
 .month-cell.other{background:var(--bg2)}
 .month-cell.other .mday{color:var(--text3);opacity:.5}
@@ -257,6 +280,14 @@ textarea{resize:vertical;min-height:80px}
   cursor:pointer;color:white;font-weight:600;line-height:1.5;
 }
 .mev-more{font-size:10px;color:var(--text3);padding-left:3px;line-height:1.5}
+
+/* ==========================
+   3-MONTHS VIEW
+   ========================== */
+.threemon-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.threemon-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.threemon-scroll .month-block{border-bottom:4px solid var(--border)}
+.threemon-scroll .month-block-title{top:0}
 
 /* ==========================
    WEEK VIEW
@@ -560,6 +591,16 @@ textarea{resize:vertical;min-height:80px}
 .cat-name{flex:1;font-size:15px}
 .cat-del{color:var(--text3);font-size:18px;padding:4px 8px;transition:color .15s}
 .cat-del:active{color:#ef4444}
+
+/* Language buttons */
+.lang-btns{display:flex;gap:6px}
+.lang-btn{
+  padding:6px 10px;border-radius:8px;font-size:13px;font-weight:600;
+  background:var(--bg2);color:var(--text2);border:2px solid transparent;
+  transition:all .15s;
+}
+.lang-btn.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.lang-btn:active{background:var(--bg3)}
 
 /* Detail */
 .detail-title-row{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;flex:1;min-width:0}

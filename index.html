@@ -13,94 +13,95 @@
 </head>
 <body class="dark">
 
-  <!-- Top Bar -->
   <header id="topbar">
     <div id="topbar-row1">
       <div id="topbar-left">
-        <button id="btn-today" class="ghost-btn">Heute</button>
+        <button id="btn-today" class="ghost-btn" data-i18n="today">Heute</button>
         <button id="btn-prev" class="icon-btn">&#8249;</button>
         <button id="btn-next" class="icon-btn">&#8250;</button>
       </div>
       <h1 id="topbar-title"></h1>
       <div id="topbar-right">
-        <button id="btn-darkmode" class="icon-btn" aria-label="Dark Mode umschalten" title="Dark Mode">
+        <button id="btn-darkmode" class="icon-btn" aria-label="Dark Mode">
           <span id="darkmode-icon">🌙</span>
+        </button>
+        <button id="btn-settings" class="icon-btn" aria-label="Einstellungen">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
         </button>
       </div>
     </div>
     <div id="topbar-row2">
       <div id="view-switcher">
-        <button class="view-btn" data-view="year">Jahr</button>
-        <button class="view-btn" data-view="month">Monat</button>
-        <button class="view-btn active" data-view="week">Woche</button>
-        <button class="view-btn" data-view="day">Tag</button>
+        <button class="view-btn" data-view="year"  data-i18n="vYear">Jahr</button>
+        <button class="view-btn" data-view="3months" data-i18n="v3Mon">3 Mon.</button>
+        <button class="view-btn" data-view="month" data-i18n="vMonth">Monat</button>
+        <button class="view-btn active" data-view="week" data-i18n="vWeek">Woche</button>
+        <button class="view-btn" data-view="day"   data-i18n="vDay">Tag</button>
       </div>
     </div>
   </header>
 
-  <!-- Main Calendar Area -->
   <main id="cal-main">
     <div id="cal-content"></div>
   </main>
 
-  <!-- FAB -->
-  <button id="fab" aria-label="Neues Event">
-    <span>+</span>
-  </button>
+  <button id="fab" aria-label="Neues Event"><span>+</span></button>
 
-  <!-- ===== EVENT EDIT MODAL ===== -->
+  <!-- EVENT MODAL -->
   <div id="event-modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-backdrop"></div>
     <div class="modal-sheet">
       <div class="modal-drag-handle"></div>
       <div class="modal-header">
         <span id="modal-title-label">Neues Event</span>
-        <button class="modal-close" aria-label="Schließen">&#10005;</button>
+        <button class="modal-close">&#10005;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label for="ev-title">Titel</label>
-          <input id="ev-title" type="text" placeholder="Titel (optional)" autocomplete="off" />
+          <label data-i18n="titleLbl">Titel</label>
+          <input id="ev-title" type="text" data-i18n-ph="titlePh" placeholder="Titel (optional)" autocomplete="off" />
         </div>
         <div class="form-group">
           <div class="cat-label-row">
-            <label>Kategorie</label>
-            <button id="ev-cat-edit-toggle" class="cat-edit-toggle" title="Kategorien bearbeiten">✏️</button>
+            <label data-i18n="categoryLbl">Kategorie</label>
+            <button id="ev-cat-edit-toggle" class="cat-edit-toggle">✏️</button>
           </div>
           <div id="ev-category-row" class="chip-row"></div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="ev-date">Datum</label>
+            <label data-i18n="dateLbl">Datum</label>
             <input id="ev-date" type="date" />
           </div>
           <div class="form-group">
-            <label for="ev-date-end">Bis Datum</label>
+            <label data-i18n="dateEndLbl">Bis Datum</label>
             <input id="ev-date-end" type="date" />
           </div>
         </div>
         <div class="form-row" id="ev-time-row">
           <div class="form-group">
-            <label for="ev-start">Von</label>
+            <label data-i18n="fromLbl">Von</label>
             <input id="ev-start" type="time" step="300" />
           </div>
           <div class="form-group">
-            <label for="ev-end">Bis</label>
+            <label data-i18n="toLbl">Bis</label>
             <input id="ev-end" type="time" step="300" />
           </div>
         </div>
         <div class="form-group">
-          <label for="ev-repeat">Wiederholen</label>
+          <label data-i18n="repeatLbl">Wiederholen</label>
           <select id="ev-repeat">
-            <option value="none">Nie</option>
-            <option value="daily">Täglich</option>
-            <option value="weekly">Wöchentlich (gleicher Wochentag)</option>
-            <option value="custom">Bestimmte Wochentage</option>
-            <option value="yearly">Jährlich</option>
+            <option value="none"   data-i18n="repNone">Nie</option>
+            <option value="daily"  data-i18n="repDaily">Täglich</option>
+            <option value="weekly" data-i18n="repWeekly">Wöchentlich</option>
+            <option value="custom" data-i18n="repCustom">Bestimmte Wochentage</option>
+            <option value="yearly" data-i18n="repYearly">Jährlich</option>
           </select>
         </div>
         <div id="ev-custom-days" class="form-group hidden">
-          <label>Wochentage</label>
+          <label data-i18n="weekdaysLbl">Wochentage</label>
           <div class="chip-row" id="weekday-chips">
             <button class="day-chip" data-day="1">Mo</button>
             <button class="day-chip" data-day="2">Di</button>
@@ -112,50 +113,87 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="ev-notes">Notizen</label>
-          <textarea id="ev-notes" rows="3" placeholder="Notizen..."></textarea>
+          <label data-i18n="notesLbl">Notizen</label>
+          <textarea id="ev-notes" rows="3" data-i18n-ph="notesPh" placeholder="Notizen..."></textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="ev-delete" class="danger-btn hidden">Löschen</button>
-        <button id="ev-save" class="primary-btn">Speichern</button>
+        <button id="ev-delete" class="danger-btn hidden" data-i18n="del">Löschen</button>
+        <button id="ev-save" class="primary-btn" data-i18n="save">Speichern</button>
       </div>
     </div>
   </div>
 
-  <!-- ===== EVENT DETAIL MODAL ===== -->
+  <!-- DETAIL MODAL -->
   <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-backdrop"></div>
     <div class="modal-sheet">
       <div class="modal-drag-handle"></div>
       <div class="modal-header">
         <div id="detail-title" class="detail-title-row"></div>
-        <button class="modal-close" aria-label="Schließen">&#10005;</button>
+        <button class="modal-close">&#10005;</button>
       </div>
       <div class="modal-body" id="detail-body"></div>
       <div class="modal-footer">
-        <button id="detail-delete" class="danger-btn">Löschen</button>
-        <button id="detail-edit" class="primary-btn">Bearbeiten</button>
+        <button id="detail-delete" class="danger-btn" data-i18n="del">Löschen</button>
+        <button id="detail-edit" class="primary-btn" data-i18n="edit">Bearbeiten</button>
       </div>
     </div>
   </div>
 
-  <!-- ===== CATEGORY ADD MODAL ===== -->
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <span data-i18n="settings">Einstellungen</span>
+        <button class="modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3 data-i18n="appearance">Darstellung</h3>
+          <div class="settings-row">
+            <span data-i18n="darkMode">Dark Mode</span>
+            <label class="toggle">
+              <input type="checkbox" id="toggle-dark" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <span data-i18n="langLbl">Sprache</span>
+            <div class="lang-btns">
+              <button class="lang-btn" data-lang="de">🇩🇪 DE</button>
+              <button class="lang-btn" data-lang="en">🇬🇧 EN</button>
+              <button class="lang-btn" data-lang="ru">🇷🇺 RU</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3 data-i18n="categories">Kategorien</h3>
+          <div id="category-list"></div>
+          <button id="btn-add-category" class="outline-btn full-width mt8" data-i18n="addCat">+ Kategorie hinzufügen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY ADD MODAL -->
   <div id="cat-modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-backdrop"></div>
     <div class="modal-sheet compact">
       <div class="modal-drag-handle"></div>
       <div class="modal-header">
-        <span>Neue Kategorie</span>
-        <button class="modal-close" aria-label="Schließen">&#10005;</button>
+        <span data-i18n="newCat">Neue Kategorie</span>
+        <button class="modal-close">&#10005;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label for="cat-name">Name</label>
-          <input id="cat-name" type="text" placeholder="Kategoriename" autocomplete="off" />
+          <label data-i18n="name">Name</label>
+          <input id="cat-name" type="text" data-i18n-ph="name" placeholder="Name" autocomplete="off" />
         </div>
         <div class="form-group">
-          <label>Farbe</label>
+          <label data-i18n="color">Farbe</label>
           <div id="color-picker" class="chip-row">
             <button class="color-chip" data-color="#ef4444" style="background:#ef4444"></button>
             <button class="color-chip" data-color="#f97316" style="background:#f97316"></button>
@@ -171,7 +209,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button id="cat-save" class="primary-btn">Speichern</button>
+        <button id="cat-save" class="primary-btn" data-i18n="save">Speichern</button>
       </div>
     </div>
   </div>
@@ -179,7 +217,7 @@
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
   </script>
 </body>
