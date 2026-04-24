@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Kalender" />
+  <meta name="theme-color" content="#0f0f1a" id="theme-color-meta" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Kalender</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark">
+
+  <!-- Top Bar -->
+  <header id="topbar">
+    <div id="topbar-row1">
+      <div id="topbar-left">
+        <button id="btn-today" class="ghost-btn">Heute</button>
+        <button id="btn-prev" class="icon-btn">&#8249;</button>
+        <button id="btn-next" class="icon-btn">&#8250;</button>
+      </div>
+      <h1 id="topbar-title"></h1>
+      <div id="topbar-right">
+        <button id="btn-darkmode" class="icon-btn" aria-label="Dark Mode umschalten" title="Dark Mode">
+          <span id="darkmode-icon">🌙</span>
+        </button>
+      </div>
+    </div>
+    <div id="topbar-row2">
+      <div id="view-switcher">
+        <button class="view-btn" data-view="year">Jahr</button>
+        <button class="view-btn" data-view="month">Monat</button>
+        <button class="view-btn active" data-view="week">Woche</button>
+        <button class="view-btn" data-view="day">Tag</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Calendar Area -->
+  <main id="cal-main">
+    <div id="cal-content"></div>
+  </main>
+
+  <!-- FAB -->
+  <button id="fab" aria-label="Neues Event">
+    <span>+</span>
+  </button>
+
+  <!-- ===== EVENT EDIT MODAL ===== -->
+  <div id="event-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <span id="modal-title-label">Neues Event</span>
+        <button class="modal-close" aria-label="Schließen">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="ev-title">Titel</label>
+          <input id="ev-title" type="text" placeholder="Titel (optional)" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <div class="cat-label-row">
+            <label>Kategorie</label>
+            <button id="ev-cat-edit-toggle" class="cat-edit-toggle" title="Kategorien bearbeiten">✏️</button>
+          </div>
+          <div id="ev-category-row" class="chip-row"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ev-date">Datum</label>
+            <input id="ev-date" type="date" />
+          </div>
+          <div class="form-group">
+            <label for="ev-date-end">Bis Datum</label>
+            <input id="ev-date-end" type="date" />
+          </div>
+        </div>
+        <div class="form-row" id="ev-time-row">
+          <div class="form-group">
+            <label for="ev-start">Von</label>
+            <input id="ev-start" type="time" step="300" />
+          </div>
+          <div class="form-group">
+            <label for="ev-end">Bis</label>
+            <input id="ev-end" type="time" step="300" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ev-repeat">Wiederholen</label>
+          <select id="ev-repeat">
+            <option value="none">Nie</option>
+            <option value="daily">Täglich</option>
+            <option value="weekly">Wöchentlich (gleicher Wochentag)</option>
+            <option value="custom">Bestimmte Wochentage</option>
+            <option value="yearly">Jährlich</option>
+          </select>
+        </div>
+        <div id="ev-custom-days" class="form-group hidden">
+          <label>Wochentage</label>
+          <div class="chip-row" id="weekday-chips">
+            <button class="day-chip" data-day="1">Mo</button>
+            <button class="day-chip" data-day="2">Di</button>
+            <button class="day-chip" data-day="3">Mi</button>
+            <button class="day-chip" data-day="4">Do</button>
+            <button class="day-chip" data-day="5">Fr</button>
+            <button class="day-chip" data-day="6">Sa</button>
+            <button class="day-chip" data-day="0">So</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ev-notes">Notizen</label>
+          <textarea id="ev-notes" rows="3" placeholder="Notizen..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="ev-delete" class="danger-btn hidden">Löschen</button>
+        <button id="ev-save" class="primary-btn">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== EVENT DETAIL MODAL ===== -->
+  <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <div id="detail-title" class="detail-title-row"></div>
+        <button class="modal-close" aria-label="Schließen">&#10005;</button>
+      </div>
+      <div class="modal-body" id="detail-body"></div>
+      <div class="modal-footer">
+        <button id="detail-delete" class="danger-btn">Löschen</button>
+        <button id="detail-edit" class="primary-btn">Bearbeiten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CATEGORY ADD MODAL ===== -->
+  <div id="cat-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet compact">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <span>Neue Kategorie</span>
+        <button class="modal-close" aria-label="Schließen">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="cat-name">Name</label>
+          <input id="cat-name" type="text" placeholder="Kategoriename" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Farbe</label>
+          <div id="color-picker" class="chip-row">
+            <button class="color-chip" data-color="#ef4444" style="background:#ef4444"></button>
+            <button class="color-chip" data-color="#f97316" style="background:#f97316"></button>
+            <button class="color-chip" data-color="#eab308" style="background:#eab308"></button>
+            <button class="color-chip" data-color="#22c55e" style="background:#22c55e"></button>
+            <button class="color-chip" data-color="#3b82f6" style="background:#3b82f6"></button>
+            <button class="color-chip" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+            <button class="color-chip" data-color="#ec4899" style="background:#ec4899"></button>
+            <button class="color-chip" data-color="#06b6d4" style="background:#06b6d4"></button>
+            <button class="color-chip" data-color="#84cc16" style="background:#84cc16"></button>
+            <button class="color-chip" data-color="#f43f5e" style="background:#f43f5e"></button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cat-save" class="primary-btn">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
