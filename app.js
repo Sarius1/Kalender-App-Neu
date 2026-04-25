@@ -10,7 +10,9 @@ const TR = {
     titleLbl:'Titel', titlePh:'Titel (optional)',
     categoryLbl:'Kategorie', dateLbl:'Datum', dateEndLbl:'Bis Datum',
     fromLbl:'Von', toLbl:'Bis', repeatLbl:'Wiederholen',
-    notesLbl:'Notizen', notesPh:'Notizen...', showInLbl:'Anzeigen in',
+    notesLbl:'Notizen', notesPh:'Notizen...', showInLbl:'Anzeigen in', alldayLbl:'Ganztag',
+    deleteRecurTitle:'Termin löschen', delOnlyThis:'Nur diesen Termin',
+    delFromHere:'Diesen und alle folgenden', delAllRecur:'Alle löschen',
     del:'Löschen', save:'Speichern', edit:'Bearbeiten',
     settings:'Einstellungen', appearance:'Darstellung', darkMode:'Dark Mode',
     langLbl:'Sprache', categories:'Kategorien', newCat:'Neue Kategorie',
@@ -31,7 +33,9 @@ const TR = {
     titleLbl:'Title', titlePh:'Title (optional)',
     categoryLbl:'Category', dateLbl:'Date', dateEndLbl:'End Date',
     fromLbl:'From', toLbl:'To', repeatLbl:'Repeat',
-    notesLbl:'Notes', notesPh:'Notes...', showInLbl:'Show in',
+    notesLbl:'Notes', notesPh:'Notes...', showInLbl:'Show in', alldayLbl:'All day',
+    deleteRecurTitle:'Delete event', delOnlyThis:'Only this event',
+    delFromHere:'This and all following', delAllRecur:'Delete all',
     del:'Delete', save:'Save', edit:'Edit',
     settings:'Settings', appearance:'Appearance', darkMode:'Dark Mode',
     langLbl:'Language', categories:'Categories', newCat:'New Category',
@@ -52,7 +56,9 @@ const TR = {
     titleLbl:'Название', titlePh:'Название (необязательно)',
     categoryLbl:'Категория', dateLbl:'Дата', dateEndLbl:'Конец',
     fromLbl:'С', toLbl:'До', repeatLbl:'Повтор',
-    notesLbl:'Заметки', notesPh:'Заметки...', showInLbl:'Показывать в',
+    notesLbl:'Заметки', notesPh:'Заметки...', showInLbl:'Показывать в', alldayLbl:'Весь день',
+    deleteRecurTitle:'Удалить событие', delOnlyThis:'Только это',
+    delFromHere:'Это и все следующие', delAllRecur:'Удалить все',
     del:'Удалить', save:'Сохранить', edit:'Изменить',
     settings:'Настройки', appearance:'Внешний вид', darkMode:'Тёмный режим',
     langLbl:'Язык', categories:'Категории', newCat:'Новая категория',
@@ -170,10 +176,13 @@ function expand(from, to) {
     if (!ev.repeat||ev.repeat==='none') {
       if (baseEnd>=from&&base<=to) out.push({...ev,_s:base,_e:baseEnd});
     } else {
+      const exceptions=new Set(ev.exceptions||[]);
+      const repeatEnd=ev.repeatEnd?fromDS(ev.repeatEnd):null;
       let cur=new Date(base), safety=0;
       const limit=addDays(to,1);
       while (cur<limit&&safety++<3000) {
-        if (cur>=from&&cur<=to) out.push({...ev,_s:new Date(cur),_e:new Date(cur)});
+        if (repeatEnd&&cur>repeatEnd) break;
+        if (cur>=from&&cur<=to&&!exceptions.has(toDS(cur))) out.push({...ev,_s:new Date(cur),_e:new Date(cur)});
         if      (ev.repeat==='daily')  cur=addDays(cur,1);
         else if (ev.repeat==='weekly') cur=addDays(cur,7);
         else if (ev.repeat==='custom') {
@@ -256,10 +265,10 @@ function buildWeekBanners(days, allEvs) {
   const ws=startOfDay(new Date(days[0]));
   const multi=[], single=Array.from({length:days.length},()=>[]);
 
-  allEvs.filter(e=>!e.startTime).forEach(ev=>{
+  allEvs.filter(e=>!e.startTime||e.allDay).forEach(ev=>{
     const s=Math.max(0, Math.round((startOfDay(new Date(ev._s))-ws)/86400000));
     const e=Math.min(days.length-1, Math.round((startOfDay(new Date(ev._e))-ws)/86400000));
-    if (e>s) multi.push({ev,s,e});
+    if (e>s||ev.allDay) multi.push({ev,s,e});
     else if (s>=0&&s<days.length) single[s].push(ev);
   });
 
@@ -663,9 +672,10 @@ function setView(v){ S.view=v; render(); }
 function updateTimeRow(){
   const date=document.getElementById('ev-date').value;
   const end =document.getElementById('ev-date-end').value;
-  const multi=end&&end>date;
-  document.getElementById('ev-time-row').classList.toggle('hidden',multi);
-  if(multi){ document.getElementById('ev-start').value=''; document.getElementById('ev-end').value=''; }
+  const allDay=document.getElementById('ev-allday').checked;
+  const hide=(end&&end>date)||allDay;
+  document.getElementById('ev-time-row').classList.toggle('hidden',hide);
+  if(hide){ document.getElementById('ev-start').value=''; document.getElementById('ev-end').value=''; }
 }
 
 // =====================
@@ -681,6 +691,7 @@ function newEvent(dateStr, timeStr){
   document.getElementById('ev-repeat').value='none';
   document.getElementById('ev-custom-days').classList.add('hidden');
   document.getElementById('ev-delete').classList.add('hidden');
+  document.getElementById('ev-allday').checked=false;
   if(timeStr){
     document.getElementById('ev-start').value=timeStr;
     const t0=parseHHMM(timeStr);
@@ -705,6 +716,7 @@ function editEvent(ev){
   document.getElementById('ev-repeat').value=ev.repeat||'none';
   document.getElementById('ev-custom-days').classList.toggle('hidden',ev.repeat!=='custom');
   document.getElementById('ev-delete').classList.remove('hidden');
+  document.getElementById('ev-allday').checked=!!ev.allDay;
   updateTimeRow(); buildCatChips(ev.category); clearDayChips(); resetShowIn(ev.showIn||null);
   (ev.repeatDays||[]).forEach(d=>{
     document.querySelectorAll('.day-chip').forEach(b=>{ if(Number(b.dataset.day)===d) b.classList.add('sel'); });
@@ -713,6 +725,7 @@ function editEvent(ev){
 }
 
 let _catEditMode=false;
+let _deletingEv=null;
 
 function buildCatChips(selected){
   _catEditMode=false;
@@ -776,7 +789,8 @@ function saveEvent(){
   document.querySelectorAll('.showin-chip.sel').forEach(b=>showInSel.push(b.dataset.view));
   // if all 5 views selected, store empty array (= show everywhere, no restriction)
   const showIn=showInSel.length===5?[]:showInSel;
-  const data={title,date,dateEnd:dateEnd!==date?dateEnd:null,startTime,endTime,notes,repeat,repeatDays,category,showIn};
+  const allDay=document.getElementById('ev-allday').checked;
+  const data={title,date,dateEnd:dateEnd!==date?dateEnd:null,startTime,endTime,notes,repeat,repeatDays,category,showIn,allDay:allDay||undefined};
   if(S.editingId){
     const i=S.events.findIndex(e=>e.id===S.editingId); if(i!==-1) S.events[i]={...S.events[i],...data};
   } else {
@@ -818,8 +832,15 @@ function openDetail(ev){
   if(ev.notes) row('📝',escH(ev.notes));
   document.getElementById('detail-edit').onclick=()=>editEvent(ev);
   document.getElementById('detail-delete').onclick=()=>{
-    S.events=S.events.filter(e=>e.id!==ev.id);
-    persist(); hideModal('detail-modal'); render();
+    const orig=S.events.find(e=>e.id===ev.id);
+    if(orig&&orig.repeat&&orig.repeat!=='none'){
+      _deletingEv=ev;
+      hideModal('detail-modal');
+      showModal('delete-recur-modal');
+    } else {
+      S.events=S.events.filter(e=>e.id!==ev.id);
+      persist(); hideModal('detail-modal'); render();
+    }
   };
   showModal('detail-modal');
 }
@@ -1062,6 +1083,33 @@ function init(){
   });
 
   document.getElementById('cat-save').addEventListener('click',saveCat);
+
+  document.getElementById('ev-allday').addEventListener('change', updateTimeRow);
+
+  document.getElementById('del-only-this').addEventListener('click',()=>{
+    if(!_deletingEv) return;
+    const orig=S.events.find(e=>e.id===_deletingEv.id);
+    if(orig){ orig.exceptions=[...(orig.exceptions||[]), toDS(_deletingEv._s)]; }
+    _deletingEv=null; persist(); hideModal('delete-recur-modal'); render();
+  });
+  document.getElementById('del-from-here').addEventListener('click',()=>{
+    if(!_deletingEv) return;
+    const orig=S.events.find(e=>e.id===_deletingEv.id);
+    if(orig){
+      const occDS=toDS(_deletingEv._s);
+      if(occDS===orig.date){
+        S.events=S.events.filter(e=>e.id!==_deletingEv.id);
+      } else {
+        orig.repeatEnd=toDS(addDays(_deletingEv._s,-1));
+      }
+    }
+    _deletingEv=null; persist(); hideModal('delete-recur-modal'); render();
+  });
+  document.getElementById('del-all-recur').addEventListener('click',()=>{
+    if(!_deletingEv) return;
+    S.events=S.events.filter(e=>e.id!==_deletingEv.id);
+    _deletingEv=null; persist(); hideModal('delete-recur-modal'); render();
+  });
 
   document.querySelectorAll('.modal-backdrop,.modal-close').forEach(el=>el.addEventListener('click',hideAllModals));
   document.querySelectorAll('.modal-sheet').forEach(s=>s.addEventListener('click',e=>e.stopPropagation()));
